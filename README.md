@@ -1,8 +1,9 @@
-# QR Frontend Starter
+# QR Frontend
 
 React + Vite + TypeScript starter for the QR SaaS backend.
 
 ## Features
+
 - Login / register
 - Protected routes
 - Tenant dashboard
@@ -33,4 +34,5 @@ VITE_API_BASE_URL=https://your-backend.up.railway.app
 ```
 
 ## Notes
+
 The QR image endpoint uses authenticated requests via the browser URL directly. If your backend keeps auth-protected image routes, you may later prefer a public signed URL or a fetch/blob pattern.
