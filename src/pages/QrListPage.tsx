@@ -89,8 +89,7 @@ export function QrListPage() {
               <button
                 className="button primary full"
                 onClick={async () => {
-                  const { fetchQrImageObjectUrl } =
-                    await import("../api/qrImage");
+                  const { fetchQrImageObjectUrl } = await import("../api/qr");
                   const objectUrl = await fetchQrImageObjectUrl(item.id);
 
                   const link = document.createElement("a");
@@ -150,8 +149,7 @@ export function QrListPage() {
                 <button
                   className="button ghost"
                   onClick={async () => {
-                    const { fetchQrImageObjectUrl } =
-                      await import("../api/qrImage");
+                    const { fetchQrImageObjectUrl } = await import("../api/qr");
                     const objectUrl = await fetchQrImageObjectUrl(item.id);
                     window.open(objectUrl, "_blank", "noopener,noreferrer");
                   }}
