@@ -1,19 +1,34 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link2, Pencil, Search } from "lucide-react";
-import { getQrCodes, getRedirectUrl } from "../api/qr";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link2, Pencil, Search, Trash2 } from "lucide-react";
+import { getQrCodes, getRedirectUrl, deleteQrCode } from "../api/qr";
 import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { QrImage } from "../components/ui/QrImage";
 import { Link } from "react-router-dom";
 
 export function QrListPage() {
+  const queryClient = useQueryClient();
+
   const { data: qrCodes, isLoading } = useQuery({
     queryKey: ["qr-codes"],
     queryFn: getQrCodes,
   });
 
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteQrCode,
+    onSuccess: async () => {
+      setDeletingId(null);
+      await queryClient.invalidateQueries({ queryKey: ["qr-codes"] });
+      await queryClient.invalidateQueries({ queryKey: ["analytics-summary"] });
+    },
+    onError: () => {
+      setDeletingId(null);
+    },
+  });
 
   const filtered = useMemo(() => {
     const list = qrCodes ?? [];
@@ -74,7 +89,8 @@ export function QrListPage() {
               <button
                 className="button primary full"
                 onClick={async () => {
-                  const { fetchQrImageObjectUrl } = await import("../api/qr");
+                  const { fetchQrImageObjectUrl } =
+                    await import("../api/qrImage");
                   const objectUrl = await fetchQrImageObjectUrl(item.id);
 
                   const link = document.createElement("a");
@@ -130,22 +146,26 @@ export function QrListPage() {
                 >
                   Edit
                 </Link>
+
                 <button
                   className="button ghost"
                   onClick={async () => {
-                    const { fetchQrImageObjectUrl } = await import("../api/qr");
+                    const { fetchQrImageObjectUrl } =
+                      await import("../api/qrImage");
                     const objectUrl = await fetchQrImageObjectUrl(item.id);
                     window.open(objectUrl, "_blank", "noopener,noreferrer");
                   }}
                 >
                   View QR
                 </button>
+
                 <Link
                   className="button secondary"
                   to={`/app/qr-codes/${item.id}/analytics`}
                 >
                   Analytics
                 </Link>
+
                 <a
                   className="button secondary"
                   href={getRedirectUrl(item.shortPath)}
@@ -154,6 +174,26 @@ export function QrListPage() {
                 >
                   Open Redirect
                 </a>
+
+                <button
+                  className="button ghost"
+                  onClick={() => {
+                    const confirmed = window.confirm(
+                      `Delete "${item.name}"? This cannot be undone.`,
+                    );
+                    if (!confirmed) return;
+
+                    setDeletingId(item.id);
+                    deleteMutation.mutate(item.id);
+                  }}
+                  disabled={deleteMutation.isPending && deletingId === item.id}
+                  style={{ color: "#d92d20" }}
+                >
+                  <Trash2 size={16} />
+                  {deleteMutation.isPending && deletingId === item.id
+                    ? "Deleting..."
+                    : "Delete"}
+                </button>
               </div>
             </div>
           </Card>

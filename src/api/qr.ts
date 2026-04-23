@@ -82,3 +82,8 @@ export async function getQrCodeById(id: string): Promise<QrCode> {
   const { data } = await api.get<QrCode>(`/qr-codes/${id}`);
   return data;
 }
+
+export async function deleteQrCode(id: string): Promise<{ success: true }> {
+  const { data } = await api.delete<{ success: true }>(`/qr-codes/${id}`);
+  return data;
+}
