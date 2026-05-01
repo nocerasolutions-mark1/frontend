@@ -7,7 +7,7 @@ import { Button } from "../components/ui/Button";
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState();
+  const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
