@@ -7,7 +7,7 @@ import { Button } from "../components/ui/Button";
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "owner@nocera.com", password: "StrongPass123" });
+  const [form, setForm] = useState();
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -30,17 +30,33 @@ export function LoginPage() {
     <div className="auth-shell">
       <div className="auth-card">
         <h1 className="auth-title">Welcome back</h1>
-        <p className="auth-subtitle">Sign in to manage your tenant QR dashboard.</p>
+        <p className="auth-subtitle">
+          Sign in to manage your tenant QR dashboard.
+        </p>
 
         <form className="form-grid" onSubmit={onSubmit}>
           <label className="label">
             Email
-            <Input type="email" value={form.email} onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))} placeholder="owner@nocera.com" />
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, email: e.target.value }))
+              }
+              placeholder="Please enter your email"
+            />
           </label>
 
           <label className="label">
             Password
-            <Input type="password" value={form.password} onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))} placeholder="••••••••" />
+            <Input
+              type="password"
+              value={form.password}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, password: e.target.value }))
+              }
+              placeholder="••••••••"
+            />
           </label>
 
           {error ? <div className="error">{error}</div> : null}
@@ -51,7 +67,13 @@ export function LoginPage() {
         </form>
 
         <p className="helper" style={{ marginTop: 18 }}>
-          No account yet? <Link to="/register" style={{ color: "var(--secondary)", fontWeight: 700 }}>Create one</Link>
+          No account yet?{" "}
+          <Link
+            to="/register"
+            style={{ color: "var(--secondary)", fontWeight: 700 }}
+          >
+            Create one
+          </Link>
         </p>
       </div>
     </div>
