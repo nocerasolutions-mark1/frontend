@@ -16,6 +16,8 @@ export type QrAnalytics = {
     referer?: string | null;
     country?: string | null;
     city?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   }>;
 };
 

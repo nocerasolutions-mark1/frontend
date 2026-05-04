@@ -24,11 +24,6 @@ export function SettingsPage() {
           <div><strong>Tenant ID:</strong> {tenant?.id}</div>
         </div>
       </Card>
-
-      <Card className="section-card">
-        <h2 style={{ marginTop: 0 }}>Environment</h2>
-        <div className="code-block">VITE_API_BASE_URL={String(import.meta.env.VITE_API_BASE_URL || "http://localhost:4000")}</div>
-      </Card>
     </div>
   );
 }

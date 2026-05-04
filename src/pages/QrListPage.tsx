@@ -2,18 +2,39 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
+  Camera,
+  Download,
   ExternalLink,
   Eye,
-  Link2,
+  Globe,
   MoreVertical,
   Pencil,
+  Play,
   Printer,
   Search,
   Trash2,
+  User,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getQrCodes, getRedirectUrl, deleteQrCode } from "../api/qr";
-import { fetchQrImageObjectUrl } from "../api/qr";
+import { getQrCodes, deleteQrCode } from "../api/qr";
+import type { QrCode } from "../api/qr";
+
+function getContentLabel(item: QrCode): string {
+  const ct = item.designJson?.contentType;
+  if (ct === "video") return "Video";
+  if (ct === "instagram") return "Instagram";
+  if (ct === "profile") return "Profile";
+  return "Website URL";
+}
+
+function getContentIcon(item: QrCode) {
+  const ct = item.designJson?.contentType;
+  if (ct === "video") return <Play size={13} fill="#ef4444" color="#ef4444" />;
+  if (ct === "instagram") return <Camera size={13} color="#e1306c" />;
+  if (ct === "profile") return <User size={13} color="#8b5cf6" />;
+  return <Globe size={13} color="#1463d8" />;
+}
+import { generateQrObjectUrl, printQrCode } from "../lib/qrExport";
 import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { QrImage } from "../components/ui/QrImage";
@@ -46,7 +67,6 @@ export function QrListPage() {
   const filtered = useMemo(() => {
     const list = qrCodes ?? [];
     if (!search.trim()) return list;
-
     const value = search.toLowerCase();
     return list.filter((item) =>
       [item.name, item.targetUrl, item.shortPath].some((field) =>
@@ -55,72 +75,35 @@ export function QrListPage() {
     );
   }, [qrCodes, search]);
 
-  async function downloadQr(id: string, name: string) {
-    const objectUrl = await fetchQrImageObjectUrl(id);
-
+  async function downloadQr(item: QrCode) {
+    const objectUrl = await generateQrObjectUrl(item);
     const link = document.createElement("a");
     link.href = objectUrl;
-    link.download = `${name}.png`;
+    link.download = `${item.name}.png`;
     document.body.appendChild(link);
     link.click();
     link.remove();
-
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   }
 
-  async function viewQr(id: string) {
-    const objectUrl = await fetchQrImageObjectUrl(id);
+  async function viewQr(item: QrCode) {
+    const objectUrl = await generateQrObjectUrl(item);
     window.open(objectUrl, "_blank", "noopener,noreferrer");
   }
 
-  async function printQr(id: string) {
-    const objectUrl = await fetchQrImageObjectUrl(id);
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-
-    if (!printWindow) return;
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Print QR Code</title>
-          <style>
-            body {
-              margin: 0;
-              min-height: 100vh;
-              display: grid;
-              place-items: center;
-              background: white;
-            }
-            img {
-              width: 420px;
-              height: 420px;
-              object-fit: contain;
-            }
-          </style>
-        </head>
-        <body>
-          <img src="${objectUrl}" onload="window.print();" />
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 3000);
+  async function printQr(item: QrCode) {
+    await printQrCode(item);
   }
 
   return (
     <div>
+      {/* TOOLBAR */}
       <div className="toolbar">
         <div className="search-row">
           <div style={{ position: "relative", minWidth: 300 }}>
             <Search
               size={18}
-              style={{
-                position: "absolute",
-                left: 14,
-                top: 14,
-                color: "var(--muted)",
-              }}
+              style={{ position: "absolute", left: 14, top: 14, color: "var(--muted)" }}
             />
             <Input
               style={{ paddingLeft: 40 }}
@@ -130,37 +113,21 @@ export function QrListPage() {
             />
           </div>
         </div>
-
         <Link className="button primary" to="/app/qr/new">
           Create QR Code
         </Link>
       </div>
 
-      {isLoading ? <div className="muted">Loading QR codes...</div> : null}
+      {isLoading && <div className="muted">Loading QR codes...</div>}
 
-      <div className="grid qr-grid">
+      {/* GRID */}
+      <div className="dash-qr-grid">
         {filtered.map((item) => (
-          <Card className="qr-card" key={item.id}>
-            <div className="qr-preview">
-              <QrImage qrCodeId={item.id} alt={item.name} />
-
-              <div
-                className="badge"
-                style={{ background: "#eef4ff", color: "#1463d8" }}
-              >
-                {item._count?.scanEvents ?? 0} scans
-              </div>
-
-              <button
-                className="button primary full"
-                onClick={() => downloadQr(item.id, item.name)}
-              >
-                Download
-              </button>
-            </div>
-
-            <div className="qr-body qr-body-menu-wrap">
-              <div className="qr-card-menu">
+          <div className="dash-qr-card card" key={item.id}>
+            {/* Colored banner — name + menu */}
+            <div className="dash-qr-banner">
+              <span className="dash-qr-name">{item.name}</span>
+              <div style={{ position: "relative", flexShrink: 0 }}>
                 <button
                   className="icon-button"
                   onClick={(e) => {
@@ -169,123 +136,88 @@ export function QrListPage() {
                   }}
                   aria-label="Open QR actions"
                 >
-                  <MoreVertical size={20} />
+                  <MoreVertical size={18} />
                 </button>
 
-                {openMenuId === item.id ? (
+                {openMenuId === item.id && (
                   <div className="dropdown-menu">
-                    <button
-                      onClick={() => {
-                        viewQr(item.id);
-                        setOpenMenuId(null);
-                      }}
-                    >
-                      <Eye size={18} />
-                      View QR
+                    <button onClick={() => { viewQr(item); setOpenMenuId(null); }}>
+                      <Eye size={16} /> View QR
                     </button>
-
-                    <Link
-                      to={`/app/qr-codes/${item.id}/edit`}
-                      onClick={() => setOpenMenuId(null)}
-                    >
-                      <Pencil size={18} />
-                      Edit
+                    <Link to={`/app/qr-codes/${item.id}/edit`} onClick={() => setOpenMenuId(null)}>
+                      <Pencil size={16} /> Edit
                     </Link>
-
-                    <Link
-                      to={`/app/qr-codes/${item.id}/analytics`}
-                      onClick={() => setOpenMenuId(null)}
-                    >
-                      <BarChart3 size={18} />
-                      Analytics
+                    <Link to={`/app/qr-codes/${item.id}/analytics`} onClick={() => setOpenMenuId(null)}>
+                      <BarChart3 size={16} /> Analytics
                     </Link>
-
-                    <a
-                      href={getRedirectUrl(item.shortPath)}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={() => setOpenMenuId(null)}
-                    >
-                      <ExternalLink size={18} />
-                      Open Redirect
-                    </a>
-
-                    <button
-                      onClick={() => {
-                        printQr(item.id);
-                        setOpenMenuId(null);
-                      }}
-                    >
-                      <Printer size={18} />
-                      Print QR
+                    <button onClick={() => { printQr(item); setOpenMenuId(null); }}>
+                      <Printer size={16} /> Print QR
                     </button>
-
                     <div className="dropdown-divider" />
-
                     <button
                       className="dropdown-danger"
+                      disabled={deleteMutation.isPending && deletingId === item.id}
                       onClick={() => {
-                        const confirmed = window.confirm(
-                          `Delete "${item.name}"? This cannot be undone.`,
-                        );
-                        if (!confirmed) return;
-
+                        if (!window.confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
                         setDeletingId(item.id);
                         deleteMutation.mutate(item.id);
                       }}
-                      disabled={
-                        deleteMutation.isPending && deletingId === item.id
-                      }
                     >
-                      <Trash2 size={18} />
-                      {deleteMutation.isPending && deletingId === item.id
-                        ? "Deleting..."
-                        : "Delete"}
+                      <Trash2 size={16} />
+                      {deleteMutation.isPending && deletingId === item.id ? "Deleting..." : "Delete"}
                     </button>
                   </div>
-                ) : null}
-              </div>
-
-              <div className="qr-header">
-                <div>
-                  <div className="badge">
-                    {item.type === "dynamic" ? "Website URL" : "Static QR"}
-                  </div>
-                  <div className="qr-name">{item.name}</div>
-                  <div className="qr-meta">
-                    Updated {new Date(item.updatedAt).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-
-              <div className="qr-links">
-                <div className="row">
-                  <Link2 size={16} />
-                  <a
-                    href={getRedirectUrl(item.shortPath)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {item.shortPath}
-                  </a>
-                </div>
-
-                <div className="row">
-                  <Pencil size={16} />
-                  <a href={item.targetUrl} target="_blank" rel="noreferrer">
-                    {item.targetUrl}
-                  </a>
-                </div>
+                )}
               </div>
             </div>
-          </Card>
+
+            {/* Body */}
+            <div className="dash-qr-body">
+              <div className="badge content-type-badge" style={{ alignSelf: "center" }}>
+                {getContentIcon(item)}
+                {getContentLabel(item)}
+              </div>
+
+              <a
+                className="dash-qr-url"
+                href={item.targetUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <ExternalLink size={13} />
+                <span>{item.targetUrl}</span>
+              </a>
+
+              <hr className="dash-qr-divider" />
+
+              <div className="dash-qr-image-wrap">
+                <QrImage qrCode={item} alt={item.name} className="dash-qr-img" />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <Link to={`/app/qr-codes/${item.id}/analytics`} className="scan-btn">
+                  <BarChart3 size={15} />
+                  {item._count?.scanEvents ?? 0} Scans
+                </Link>
+              </div>
+
+              <div className="qr-meta" style={{ textAlign: "center" }}>
+                Updated {new Date(item.updatedAt).toLocaleString()}
+              </div>
+
+              <button className="button primary full" onClick={() => downloadQr(item)}>
+                <Download size={16} />
+                Download
+              </button>
+            </div>
+          </div>
         ))}
 
-        {!filtered.length && !isLoading ? (
+        {!filtered.length && !isLoading && (
           <Card className="section-card">
             <div className="muted">No QR codes found.</div>
           </Card>
-        ) : null}
+        )}
       </div>
     </div>
   );

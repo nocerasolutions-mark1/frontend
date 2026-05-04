@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { BarChart3, Folder, LayoutDashboard, Link2, LogOut, Plus, QrCode, Settings } from "lucide-react";
+import { BarChart3, LayoutDashboard, Link2, LogOut, Plus, QrCode, Settings } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
 export function Sidebar() {
@@ -29,7 +29,7 @@ export function Sidebar() {
         </NavLink>
         <NavLink to="/app/analytics" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
           <BarChart3 size={18} />
-          Stats
+          Analytics
         </NavLink>
       </nav>
 
@@ -39,10 +39,6 @@ export function Sidebar() {
           <Settings size={18} />
           Settings
         </NavLink>
-        <a className="nav-link" href="https://railway.app" target="_blank" rel="noreferrer">
-          <Folder size={18} />
-          Docs / Ops
-        </a>
       </nav>
 
       <div className="sidebar-section-title">Account</div>
